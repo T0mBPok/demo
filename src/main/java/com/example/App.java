@@ -3,12 +3,15 @@ package com.example;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import javax.swing.JFrame;
+import javax.swing.*;
+import java.awt.*;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYLineAnnotation;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -19,6 +22,10 @@ import org.jfree.data.xy.XYSeriesCollection;
  */
 public class App 
 {
+    public static XYSeries series;
+    public static JFreeChart chart;
+    public static ChartPanel chartPanel;
+
     public static double method(Function<Double, Double> func, double leftPoint, double rightPoint, double accuracy, int[] count){
         double funcLeftPoint = func.apply(leftPoint); //calculating value at the left point
         double funcRightPoint = func.apply(rightPoint); // calculating value at the right point
@@ -34,6 +41,9 @@ public class App
             while(true){
                 newPoint = rightPoint - (funcRightPoint*(rightPoint - leftPoint))/(funcRightPoint - funcLeftPoint); // using the formula for a new point
                 double funcNewPoint = func.apply(newPoint); // calculating value at the new point
+                XYPlot plot = (XYPlot) chart.getPlot();
+                XYLineAnnotation line = new XYLineAnnotation(leftPoint, func.apply(leftPoint), newPoint, func.apply(newPoint), new BasicStroke(1.0f), Color.RED);
+                plot.addAnnotation(line);
 
                 count[0]++;
 
@@ -48,6 +58,9 @@ public class App
             while(true){
                 newPoint = leftPoint - (funcLeftPoint*(rightPoint - leftPoint))/(funcRightPoint-funcLeftPoint);
                 double funcNewPoint = func.apply(newPoint);
+                XYPlot plot = (XYPlot) chart.getPlot();
+                XYLineAnnotation line = new XYLineAnnotation(rightPoint, func.apply(rightPoint), newPoint, func.apply(newPoint), new BasicStroke(1.0f), Color.RED);
+                plot.addAnnotation(line);
 
                 count[0]++;
 
@@ -70,10 +83,10 @@ public class App
         int rightPoint = scan.nextInt();
         double accuracy = scan.nextDouble();
         // Создаем серию данных
-        XYSeries series = new XYSeries("Chord method");
+        series = new XYSeries("Chord method");
 
         // Добавляем данные в серию (например, от 0 до 10)
-        for (double x = leftPoint-4; x <= rightPoint+4; x += 0.1) {
+        for (double x = leftPoint; x <= rightPoint; x += 0.1) {
             double y = func.apply(x); // Замените на вашу функцию
             series.add(x, y);
         }
@@ -82,8 +95,8 @@ public class App
         XYDataset dataset = new XYSeriesCollection(series);
 
         // Создаем график
-        JFreeChart chart = ChartFactory.createXYLineChart(
-                "График функции y = -3*x + 6", // Заголовок
+        chart = ChartFactory.createXYLineChart(
+                "График функции", // Заголовок
                 "x",                          // Ось X
                 "y",                          // Ось Y
                 dataset,                      // Набор данных
@@ -94,7 +107,7 @@ public class App
         );
 
         // Создаем панель для отображения графика
-        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
 
         // Создаем окно и добавляем панель с графиком
