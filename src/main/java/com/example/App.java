@@ -108,7 +108,7 @@ public class App
         // Создаем серию данных
         series = new XYSeries("Chord method");
 
-        // Добавляем данные в серию (например, от 0 до 10)
+        // добавляем точки графика 
         for (double x = leftPoint; x <= rightPoint; x += 0.1) {
             double y = func.apply(x);
             series.add(x, y);
