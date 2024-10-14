@@ -23,10 +23,10 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class App 
 {
+    public static Function<Double, Double> func = x -> Math.pow(x, 2) - 4; // setting the equation 
     public static XYSeries series;
     public static JFreeChart chart;
     public static ChartPanel chartPanel;
-    public static Function<Double, Double> func = x -> Math.pow(x, 2) - 4; // setting the equation 
     public static int count=0;
     public static JLabel rootLabel;
     public static JLabel valueRootLabel;
