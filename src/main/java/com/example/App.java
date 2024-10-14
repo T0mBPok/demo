@@ -2,12 +2,10 @@ package com.example;
 
 import java.util.Scanner;
 import java.util.function.Function;
+import java.util.List;
 
 import javax.swing.*;
-
 import java.awt.*;
-// import java.awt.event.KeyListener;
-// import java.awt.event.KeyEvent;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -25,65 +23,78 @@ public class App
     public static XYSeries series;
     public static JFreeChart chart;
     public static ChartPanel chartPanel;
-    public static 
-    Function<Double, Double> func = x -> Math.pow(x, 2) - 4; // setting the equation 
+    public static Function<Double, Double> func = x -> Math.pow(x, 2) - 4; // setting the equation 
+    public static int count=0;
 
-    public static double method(Function<Double, Double> func, double leftPoint, double rightPoint, double accuracy, int[] count){
-        double funcLeftPoint = func.apply(leftPoint); //calculating value at the left point
-        double funcRightPoint = func.apply(rightPoint); // calculating value at the right point
-        double secondDer = secondDerivative(leftPoint);
+    // Прописываем метод хорд
+    public static void method(Function<Double, Double> func, double leftPoint, double rightPoint, double accuracy){
+        // Using swing utility for assinc compliting the chord method 
+        // (have to be because it locks the GUI and does not show the method work with the graph)
+        SwingWorker<Void, Double[]> worker = new SwingWorker<Void,Double[]>() {
+            double localLeftPoint = leftPoint;
+            double localRightPoint = rightPoint;
+            @Override
+            protected Void doInBackground() throws Exception{
+                double funcLeftPoint = func.apply(localLeftPoint); //calculating value at the left point
+                double funcRightPoint = func.apply(localRightPoint); // calculating value at the right point
+                double secondDer = secondDerivative(localLeftPoint); // calculating the secon derivative
 
 
-        if(funcLeftPoint*funcRightPoint >= 0){ // checking the existance of a root of an equation
-            throw new IllegalArgumentException("Знаки правой и левой границы должны быть различны!");
-        }
-
-        double newPoint  = 0;
-
-        if(funcLeftPoint*secondDer>0){ // graph type check
-            while(true){
-                newPoint = rightPoint - (funcRightPoint*(rightPoint - leftPoint))/(funcRightPoint - funcLeftPoint); // using the formula for a new point
-                double funcNewPoint = func.apply(newPoint); // calculating value at the new point
-                drawLine(leftPoint, func.apply(leftPoint), newPoint, funcNewPoint);
-
-                count[0]++;
-
-                if(Math.abs(rightPoint-newPoint)<accuracy){ // root check
-                    return newPoint;
+                if(funcLeftPoint*funcRightPoint >= 0){ // checking the existance of a root of an equation
+                    throw new IllegalArgumentException("Знаки правой и левой границы должны быть различны!");
                 }
 
-                rightPoint = newPoint; // mooving the boundary of the graph
-                funcRightPoint = funcNewPoint;
-            }
-        }else{
-            while(true){
-                newPoint = leftPoint - (funcLeftPoint*(rightPoint - leftPoint))/(funcRightPoint-funcLeftPoint);
-                double funcNewPoint = func.apply(newPoint);
-                drawLine(rightPoint, func.apply(rightPoint), newPoint, funcNewPoint);
+                double newPoint  = 0;
 
-                count[0]++;
+                if(funcLeftPoint*secondDer>0){ // graph type check
+                    while(true){
+                        newPoint = localRightPoint - (funcRightPoint*(localRightPoint - localLeftPoint))/(funcRightPoint - funcLeftPoint); // using the formula for a new point
+                        double funcNewPoint = func.apply(newPoint); // calculating value at the new point
+                        publish(new Double[]{localLeftPoint, func.apply(localLeftPoint), newPoint, funcNewPoint}); // sending the data into process to drow the line
 
-                if(Math.abs(newPoint - leftPoint)<accuracy){
-                    return newPoint;
+                        Thread.sleep(500);//delay for rendering graph
+
+                        count++; // increasing count of iteratinos
+
+                        // root check
+                        if(Math.abs(localRightPoint-newPoint)<accuracy){
+                            return null;
+                        }
+
+                        // mooving the boundary of the graph
+                        localRightPoint = newPoint; 
+                        funcRightPoint = funcNewPoint;
+                    }
+                }else{
+                    while(true){
+                        newPoint = localLeftPoint - (funcLeftPoint*(localRightPoint - localLeftPoint))/(funcRightPoint-funcLeftPoint);
+                        double funcNewPoint = func.apply(newPoint);
+                        publish(new Double[]{localRightPoint, func.apply(localRightPoint), newPoint, funcNewPoint});
+
+                        Thread.sleep(500);
+
+                        count++;
+
+                        if(Math.abs(newPoint - localLeftPoint)<accuracy){
+                            return null;
+                        }
+
+                        localLeftPoint = newPoint;
+                        funcLeftPoint = funcNewPoint;
+                    }
                 }
-
-                leftPoint = newPoint;
-                funcLeftPoint = funcNewPoint;
             }
-        }
-    }
 
-    public static void drawLine(double x1, double y1, double x2, double y2){
-        try {
-            XYPlot plot = (XYPlot) chart.getPlot();
-            XYLineAnnotation line = new XYLineAnnotation(x1, y1, x2, y2, new BasicStroke(0.3f), Color.RED);
-            plot.addAnnotation(line);
-
-            Thread.sleep(500);//delay for rendering graph
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            @Override
+            protected void process(List<Double[]> chunks){
+                for(Double[] el : chunks){
+                    XYPlot plot = (XYPlot) chart.getPlot();
+                    XYLineAnnotation line = new XYLineAnnotation(el[0], el[1], el[2], el[3], new BasicStroke(0.3f), Color.RED);
+                    plot.addAnnotation(line);
+                }
+            }
+        };
+        worker.execute();
     }
 
     // Первая производная f'(x)
@@ -98,17 +109,12 @@ public class App
         return (firstDerivative(x + h) - firstDerivative(x - h)) / (2 * h); // Центральная разностная схема
     }
 
-    public static void main(String[] args) {
-        Scanner scan = new Scanner(System.in);
-        int[] count = {0};
-        System.out.println("Enter leftPoint, rightPoint and accuracy: ");
-        int leftPoint = scan.nextInt();
-        int rightPoint = scan.nextInt();
-        double accuracy = scan.nextDouble();
+    // Создаем второе окно для графика и метода
+    public static void showGraphWMethod(double leftPoint, double rightPoint, double accuracy){
         // Создаем серию данных
         series = new XYSeries("Chord method");
 
-        // добавляем точки графика 
+        // Добавляем точки графика 
         for (double x = leftPoint; x <= rightPoint; x += 0.1) {
             double y = func.apply(x);
             series.add(x, y);
@@ -133,19 +139,60 @@ public class App
         chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new java.awt.Dimension(1000, 800));
 
-        // Создаем окно и добавляем панель с графиком
+        // Создаем кнопку для вызова метода
+        JButton butt = new JButton("Use method");
+        // Добавляем на нее обработчик событий
+        butt.addActionListener(e -> {
+            method(func, leftPoint, rightPoint, accuracy);
+        });
+
+        // Создаем окно и добавляем панель с графиком и кнопку
         JFrame frame = new JFrame("График функции");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(chartPanel);
+        frame.getContentPane().add(chartPanel, BorderLayout.CENTER);
+        frame.getContentPane().add(butt, BorderLayout.SOUTH);
         frame.pack();
         frame.setAlwaysOnTop(true);
         frame.setVisible(true);
+    }
 
+    public static void main(String[] args) {
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Enter leftPoint, rightPoint and accuracy: ");
+        int leftPoint = scan.nextInt();
+        int rightPoint = scan.nextInt();
+        double accuracy = scan.nextDouble();
 
-        double valueAtTheRoot = method(func, leftPoint, rightPoint, accuracy, count);
-        System.out.println("The root at the x = " + valueAtTheRoot);
-        System.out.println("At this point the function takes the value = " + func.apply(valueAtTheRoot));
-        System.out.println("Achived in " + count[0] + " iterations");
+        JFrame frame = new JFrame("Function selection");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(600, 400);
+        frame.setLayout(new FlowLayout());
+
+        JRadioButton firstGraphButt = new JRadioButton("Graph x^2 - 4");
+        JRadioButton secondGraphButt = new JRadioButton("Graph -x^3 + x^2 - 5");
+        JButton showGraphButt = new JButton("Show the choosen function graph");
+
+        ButtonGroup graphsButtonGroup = new ButtonGroup();
+        graphsButtonGroup.add(firstGraphButt);
+        graphsButtonGroup.add(secondGraphButt);
+
+        firstGraphButt.setSelected(true);
+
+        frame.add(firstGraphButt);
+        frame.add(secondGraphButt);
+        frame.add(showGraphButt);
+
+        showGraphButt.addActionListener(e -> {
+            func = firstGraphButt.isSelected() ? x -> Math.pow(x, 2) - 4 : x -> -Math.pow(x, 3) + Math.pow(x, 2) - 5;
+            showGraphWMethod(leftPoint, rightPoint, accuracy);
+        });
+
+        frame.setVisible(true);
+        frame.setAlwaysOnTop(true);
+        
+        // System.out.println("The root at the x = " + valueAtTheRoot);
+        // System.out.println("At this point the function takes the value = " + func.apply(valueAtTheRoot));
+        // System.out.println("Achived in " + count[0] + " iterations");
         scan.close();
     }
 }
