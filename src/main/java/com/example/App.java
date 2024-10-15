@@ -1,6 +1,5 @@
 package com.example;
 
-import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.List;
@@ -23,7 +22,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class App 
 {
-    public static Function<Double, Double> func = x -> Math.pow(x, 2) - 4; // setting the equation 
+    public static Function<Double, Double> func; // setting the equation 
     public static XYSeries series;
     public static JFreeChart chart;
     public static ChartPanel chartPanel;
@@ -46,7 +45,7 @@ public class App
                 double secondDer = secondDerivative(localLeftPoint); // calculating the secon derivative
 
 
-                if(funcLeftPoint*funcRightPoint >= 0){ // checking the existance of a root of an equation
+                if(funcLeftPoint*funcRightPoint > 0){ // checking the existance of a root of an equation
                     JOptionPane.showMessageDialog(null, "Move the graph boundaries!", "Error: The root does not exists", JOptionPane.ERROR_MESSAGE);
                     System.exit(1);
                 }
@@ -57,7 +56,7 @@ public class App
                     while(true){
                         newPoint = localRightPoint - (funcRightPoint*(localRightPoint - localLeftPoint))/(funcRightPoint - funcLeftPoint); // using the formula for a new point
                         double funcNewPoint = func.apply(newPoint); // calculating value at the new point
-                        publish(new Double[]{localLeftPoint, func.apply(localLeftPoint), newPoint, funcNewPoint}); // sending the data into process to drow the line
+                        publish(new Double[]{localLeftPoint, func.apply(localLeftPoint), newPoint, funcNewPoint, newPoint}); // sending the data into process to drow the line
 
                         Thread.sleep(500);//delay for rendering graph
 
@@ -110,10 +109,8 @@ public class App
                     valueRootLabel.setText("At this point the function takes the value = " + func.apply(root));
                     countLabel.setText("Achived in " + count + " iterations");
                 } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 } catch (ExecutionException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -180,8 +177,6 @@ public class App
     }
 
     public static void main(String[] args) {
-        Scanner scan = new Scanner(System.in);
-
         //Setting the frame
         JFrame frame = new JFrame("Function selection");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -189,8 +184,8 @@ public class App
         frame.setLayout(new FlowLayout(FlowLayout.CENTER));
 
         // Creating the methods buttons
-        JRadioButton firstGraphButt = new JRadioButton("Graph x^2 - 4");
-        JRadioButton secondGraphButt = new JRadioButton("Graph -x^3 + x^2 - 5");
+        JRadioButton firstGraphButt = new JRadioButton("Graph x^2 - 4"); // [-4, 0] && [0, 5] 
+        JRadioButton secondGraphButt = new JRadioButton("Graph x^3 + x^2"); // [-1.5. -0.5] && [-0.5, 0.5]
 
         double[] data = new double[3];
         JTextField[] textFields = new JTextField[3];
@@ -272,13 +267,11 @@ public class App
 
         // drawing the graph
         showGraphButt.addActionListener(e -> {
-            func = firstGraphButt.isSelected() ? x -> Math.pow(x, 2) - 4 : x -> -Math.pow(x, 3) + Math.pow(x, 2) - 5;
+            func = firstGraphButt.isSelected() ? x -> Math.pow(x, 2) - 4 : x -> Math.pow(x, 3) + Math.pow(x, 2);
             showGraphWMethod(data[0], data[1], data[2]);
         });
 
         // Set frame to visible
         frame.setVisible(true);
-
-        scan.close();
     }
 }
